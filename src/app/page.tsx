@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   ChevronRight,
+  ChevronDown,
   IceCream,
   Menu,
   Search,
@@ -13,6 +14,11 @@ import {
   Star,
   User,
   LogOut,
+  Package,
+  Heart,
+  Bell,
+  Gift,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
@@ -60,6 +66,296 @@ const categories = [
 ];
 
 // Prominent hero banners inspired by marketplaces such as Amazon and Flipkart.
+// Detailed mega menu structure keeps the dropdown flexible for chocolate and ice cream assortments.
+type MegaCategory = {
+  title: string;
+  description?: string;
+  sections: {
+    heading: string;
+    items: { label: string; href: string }[];
+  }[];
+};
+
+const megaCategories: MegaCategory[] = [
+  {
+    title: "Ice Cream Pints",
+    description: "Hand-churned classics ready for the freezer.",
+    sections: [
+      {
+        heading: "Classic Flavours",
+        items: [
+          { label: "Madagascar Vanilla", href: "#" },
+          { label: "Belgian Chocolate", href: "#" },
+          { label: "Salted Caramel", href: "#" },
+          { label: "Strawberry Swirl", href: "#" },
+        ],
+      },
+      {
+        heading: "Seasonal Specials",
+        items: [
+          { label: "Alphonso Mango", href: "#" },
+          { label: "Pumpkin Praline", href: "#" },
+          { label: "Peppermint Crunch", href: "#" },
+          { label: "Rose Pistachio", href: "#" },
+        ],
+      },
+      {
+        heading: "Better For You",
+        items: [
+          { label: "Keto Almond Fudge", href: "#" },
+          { label: "Sugar-Free Vanilla", href: "#" },
+          { label: "Vegan Coconut Bliss", href: "#" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Gelato & Sorbet",
+    description: "Silky gelato and bright fruit sorbets.",
+    sections: [
+      {
+        heading: "Signature Gelato",
+        items: [
+          { label: "Pistachio Di Bronte", href: "#" },
+          { label: "Tiramisu Mascarpone", href: "#" },
+          { label: "Hazelnut Gianduja", href: "#" },
+        ],
+      },
+      {
+        heading: "Dairy-Free Sorbet",
+        items: [
+          { label: "Pink Guava", href: "#" },
+          { label: "Lemon Basil", href: "#" },
+          { label: "Kala Jamun", href: "#" },
+          { label: "Blueberry Lavender", href: "#" },
+        ],
+      },
+      {
+        heading: "Affogato Kits",
+        items: [
+          { label: "Espresso & Vanilla", href: "#" },
+          { label: "Mocha Crunch", href: "#" },
+          { label: "Hazelnut Latte", href: "#" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Chocolate Treats",
+    description: "Bean-to-bar tablets, truffles and sauces.",
+    sections: [
+      {
+        heading: "Artisan Bars",
+        items: [
+          { label: "72% Dark Peru", href: "#" },
+          { label: "Raspberry Ruby", href: "#" },
+          { label: "Hazelnut Crunch", href: "#" },
+        ],
+      },
+      {
+        heading: "Bonbons & Truffles",
+        items: [
+          { label: "Sea Salt Caramel", href: "#" },
+          { label: "Espresso Shot", href: "#" },
+          { label: "Champagne Ganache", href: "#" },
+        ],
+      },
+      {
+        heading: "Dessert Sauces",
+        items: [
+          { label: "Hot Fudge", href: "#" },
+          { label: "Salted Caramel Drizzle", href: "#" },
+          { label: "White Chocolate Shell", href: "#" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Combos & Bundles",
+    description: "Curated packs for gifting and celebrations.",
+    sections: [
+      {
+        heading: "Party Packs",
+        items: [
+          { label: "Movie Night Crate", href: "#" },
+          { label: "Birthday Bash", href: "#" },
+          { label: "Office Treat Box", href: "#" },
+        ],
+      },
+      {
+        heading: "Pairing Sets",
+        items: [
+          { label: "Gelato & Truffle", href: "#" },
+          { label: "Chocolate Fondue", href: "#" },
+          { label: "Sundae Starter", href: "#" },
+        ],
+      },
+      {
+        heading: "Sampler Flights",
+        items: [
+          { label: "World Of Chocolate", href: "#" },
+          { label: "Nitro Scoop Flight", href: "#" },
+          { label: "Sorbet Trio", href: "#" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Toppings & Extras",
+    description: "Crunch, sauces and add-ons for parfait bars.",
+    sections: [
+      {
+        heading: "Crunchy Mix",
+        items: [
+          { label: "Brownie Crumble", href: "#" },
+          { label: "Roasted Almond", href: "#" },
+          { label: "Honeycomb Shards", href: "#" },
+        ],
+      },
+      {
+        heading: "Sauce Bar",
+        items: [
+          { label: "Berry Coulis", href: "#" },
+          { label: "Nutella Swirl", href: "#" },
+          { label: "Spiced Caramel", href: "#" },
+        ],
+      },
+      {
+        heading: "Extras",
+        items: [
+          { label: "Waffle Cones", href: "#" },
+          { label: "Edible Flowers", href: "#" },
+          { label: "Mini Marshmallows", href: "#" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Gifting & Merchandise",
+    description: "Cards, experiences and scoop-shop merch.",
+    sections: [
+      {
+        heading: "Gift Cards",
+        items: [
+          { label: "Digital Gift Card", href: "#" },
+          { label: "Corporate Hampers", href: "#" },
+        ],
+      },
+      {
+        heading: "Experiences",
+        items: [
+          { label: "Ice Cream Workshop", href: "#" },
+          { label: "Factory Tour", href: "#" },
+        ],
+      },
+      {
+        heading: "Merch",
+        items: [
+          { label: "Scoop Shop T-Shirts", href: "#" },
+          { label: "Ceramic Bowls", href: "#" },
+          { label: "Reusable Cool Bag", href: "#" },
+        ],
+      },
+    ],
+  },
+];
+
+// Brand mega menu definition mirrors Tata CLiQ style but focused on dessert houses.
+type BrandCollection = {
+  title: string;
+  description?: string;
+  popularBrands: { label: string; href: string }[];
+  featuredBrands: { label: string; href: string }[];
+  spotlights: {
+    name: string;
+    href: string;
+    initials: string;
+    accentColor: string;
+    textColor?: string;
+  }[];
+};
+
+const brandCollections: BrandCollection[] = [
+  {
+    title: "Artisan Chocolatiers",
+    description: "Single-origin bars, bonbons and couverture pros.",
+    popularBrands: [
+      { label: "Cocoa Lab", href: "#" },
+      { label: "Midnight Cacao", href: "#" },
+      { label: "Velvet Bean", href: "#" },
+      { label: "Truffle Atelier", href: "#" },
+      { label: "Ritual 72", href: "#" },
+      { label: "Bloom & Bar", href: "#" },
+    ],
+    featuredBrands: [
+      { label: "Maison Ganache", href: "#" },
+      { label: "Noir Crafts", href: "#" },
+      { label: "Sea Salt Society", href: "#" },
+      { label: "Praline Project", href: "#" },
+      { label: "Bonbon Bureau", href: "#" },
+      { label: "Cask & Cocoa", href: "#" },
+    ],
+    spotlights: [
+      { name: "Maison Ganache", href: "#", initials: "MG", accentColor: "bg-[#f3d1d1]", textColor: "text-[#5b2c2c]" },
+      { name: "Praline Project", href: "#", initials: "PP", accentColor: "bg-[#f8e2c8]", textColor: "text-[#7b431b]" },
+      { name: "Sea Salt Society", href: "#", initials: "SS", accentColor: "bg-[#d7ecff]", textColor: "text-[#1d4f91]" },
+      { name: "Cocoa Lab", href: "#", initials: "CL", accentColor: "bg-[#ede7f6]", textColor: "text-[#422b88]" },
+    ],
+  },
+  {
+    title: "Gelaterias & Scoop Shops",
+    description: "Micro-batch gelato studios and scoop carts.",
+    popularBrands: [
+      { label: "Frost & Fold", href: "#" },
+      { label: "Brunello Scoops", href: "#" },
+      { label: "Panna Pura", href: "#" },
+      { label: "Affogato Co.", href: "#" },
+      { label: "Sundae Social", href: "#" },
+      { label: "Velato", href: "#" },
+    ],
+    featuredBrands: [
+      { label: "Gelato Fiore", href: "#" },
+      { label: "Cloud Nine Creamery", href: "#" },
+      { label: "Nitro Room", href: "#" },
+      { label: "Dolce Dash", href: "#" },
+      { label: "Paleta Pop", href: "#" },
+      { label: "Chillsmith", href: "#" },
+    ],
+    spotlights: [
+      { name: "Gelato Fiore", href: "#", initials: "GF", accentColor: "bg-[#ffe5f0]", textColor: "text-[#a32758]" },
+      { name: "Nitro Room", href: "#", initials: "NR", accentColor: "bg-[#e0f7fa]", textColor: "text-[#006064]" },
+      { name: "Cloud Nine Creamery", href: "#", initials: "CN", accentColor: "bg-[#ede7f6]", textColor: "text-[#512da8]" },
+      { name: "Paleta Pop", href: "#", initials: "PP", accentColor: "bg-[#fff3c4]", textColor: "text-[#8c6d00]" },
+    ],
+  },
+  {
+    title: "Vegan & Wellness Treats",
+    description: "Plant-based, keto and functional indulgence brands.",
+    popularBrands: [
+      { label: "Oat Bloom", href: "#" },
+      { label: "Nutty Scoop", href: "#" },
+      { label: "Coco Culture", href: "#" },
+      { label: "Pure Keto Kitchen", href: "#" },
+      { label: "Glow Bowls", href: "#" },
+      { label: "Vital Gelato", href: "#" },
+    ],
+    featuredBrands: [
+      { label: "Green Spoon", href: "#" },
+      { label: "Moringa Melt", href: "#" },
+      { label: "Probiotic Pantry", href: "#" },
+      { label: "Adaptogen Alley", href: "#" },
+      { label: "Keto Kove", href: "#" },
+      { label: "Luna Sorbet", href: "#" },
+    ],
+    spotlights: [
+      { name: "Green Spoon", href: "#", initials: "GS", accentColor: "bg-[#e2f7e1]", textColor: "text-[#1f7a3a]" },
+      { name: "Pure Keto Kitchen", href: "#", initials: "PK", accentColor: "bg-[#ffe2d9]", textColor: "text-[#993724]" },
+      { name: "Luna Sorbet", href: "#", initials: "LS", accentColor: "bg-[#ebe6ff]", textColor: "text-[#4734a5]" },
+      { name: "Nutty Scoop", href: "#", initials: "NS", accentColor: "bg-[#f9eddb]", textColor: "text-[#8b5a2b]" },
+    ],
+  },
+];
+
 const heroBanners = [
   {
     id: "berry-bliss",
@@ -257,9 +553,17 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [activeBanner, setActiveBanner] = useState<number>(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState<boolean>(false);
+  const [isMegaMenuOpen, setIsMegaMenuOpen] = useState<boolean>(false);
+  const [activeMegaCategoryIndex, setActiveMegaCategoryIndex] = useState<number>(0);
+  const [isBrandMenuOpen, setIsBrandMenuOpen] = useState<boolean>(false);
+  const [activeBrandCollectionIndex, setActiveBrandCollectionIndex] = useState<number>(0);
 
   const { user, profile, signOut, loading: authLoading } = useAuth();
   const { itemCount, addItem, loading: cartLoading } = useCart();
+
+  const activeMegaCategory = megaCategories[activeMegaCategoryIndex] ?? megaCategories[0];
+  const activeBrandCollection = brandCollections[activeBrandCollectionIndex] ?? brandCollections[0];
 
   // Auto-rotate hero banners to keep the landing page fresh.
   useEffect(() => {
@@ -307,7 +611,56 @@ export default function Home() {
     if (error) {
       console.error('Error signing out:', error);
     }
+    setIsProfileDropdownOpen(false);
   };
+
+  const handleMegaMenuToggle = () => {
+    setIsMegaMenuOpen(prev => {
+      const next = !prev;
+      if (next) {
+        setActiveMegaCategoryIndex(0);
+      }
+      return next;
+    });
+    setIsProfileDropdownOpen(false);
+    setIsBrandMenuOpen(false);
+  };
+
+  const handleBrandMenuToggle = () => {
+    setIsBrandMenuOpen(prev => {
+      const next = !prev;
+      if (next) {
+        setActiveBrandCollectionIndex(0);
+      }
+      return next;
+    });
+    setIsProfileDropdownOpen(false);
+    setIsMegaMenuOpen(false);
+  };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+
+      if (isProfileDropdownOpen && !target.closest('#profile-dropdown-container')) {
+        setIsProfileDropdownOpen(false);
+      }
+
+      if (isMegaMenuOpen && !target.closest('#mega-menu-container')) {
+        setIsMegaMenuOpen(false);
+      }
+
+      if (isBrandMenuOpen && !target.closest('#brand-menu-container')) {
+        setIsBrandMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isProfileDropdownOpen, isMegaMenuOpen, isBrandMenuOpen]);
 
   return (
     <div className="min-h-screen bg-[#f6f5f4] text-[#111111]">
@@ -332,6 +685,208 @@ export default function Home() {
                 <span className="text-xs text-[#6b6b6b] hidden sm:block">Ice cream superstore</span>
               </div>
             </Link>
+            <div
+              className="relative hidden lg:block"
+              id="mega-menu-container"
+              onMouseEnter={() => {
+                setIsMegaMenuOpen(true);
+                setIsProfileDropdownOpen(false);
+                setIsBrandMenuOpen(false);
+              }}
+              onMouseLeave={() => setIsMegaMenuOpen(false)}
+            >
+              <button
+                type="button"
+                onClick={handleMegaMenuToggle}
+                className="inline-flex items-center gap-2 rounded-full border border-[#e5e5e5] bg-white px-4 py-2 text-sm font-semibold text-[#111111] transition hover:bg-[#111111] hover:text-white"
+                aria-expanded={isMegaMenuOpen}
+                aria-haspopup="true"
+              >
+                Categories
+                <ChevronDown className={`h-4 w-4 transition-transform ${isMegaMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isMegaMenuOpen && activeMegaCategory && (
+                <div className="absolute left-0 top-full mt-3 w-[760px] rounded-2xl border border-[#e5e5e5] bg-white shadow-xl">
+                  <div className="grid grid-cols-[220px,1fr]">
+                    <div className="border-r border-[#f0f0f0] py-3">
+                      {megaCategories.map((category, index) => (
+                        <button
+                          type="button"
+                          key={category.title}
+                          onMouseEnter={() => setActiveMegaCategoryIndex(index)}
+                          onFocus={() => setActiveMegaCategoryIndex(index)}
+                          className={`flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium transition ${
+                            index === activeMegaCategoryIndex
+                              ? 'bg-[#111111] text-white'
+                              : 'text-[#444444] hover:bg-[#f5f5f5]'
+                          }`}
+                        >
+                          <span className="text-left">{category.title}</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="p-6">
+                      <div className="flex flex-col gap-2">
+                        <h3 className="text-lg font-semibold text-[#111111]">
+                          {activeMegaCategory.title}
+                        </h3>
+                        {activeMegaCategory.description && (
+                          <p className="text-sm text-[#6b6b6b]">
+                            {activeMegaCategory.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        {activeMegaCategory.sections.map(section => (
+                          <div key={section.heading} className="space-y-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#999999]">
+                              {section.heading}
+                            </h4>
+                            <ul className="space-y-2">
+                              {section.items.map(item => (
+                                <li key={item.label}>
+                                  <Link
+                                    href={item.href}
+                                    className="text-sm text-[#444444] transition hover:text-[#111111]"
+                                    onClick={() => setIsMegaMenuOpen(false)}
+                                  >
+                                    {item.label}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div
+              className="relative hidden lg:block"
+              id="brand-menu-container"
+              onMouseEnter={() => {
+                setIsBrandMenuOpen(true);
+                setIsProfileDropdownOpen(false);
+                setIsMegaMenuOpen(false);
+              }}
+              onMouseLeave={() => setIsBrandMenuOpen(false)}
+            >
+              <button
+                type="button"
+                onClick={handleBrandMenuToggle}
+                className="inline-flex items-center gap-2 rounded-full border border-[#e5e5e5] bg-white px-4 py-2 text-sm font-semibold text-[#111111] transition hover:bg-[#111111] hover:text-white"
+                aria-expanded={isBrandMenuOpen}
+                aria-haspopup="true"
+              >
+                Brands
+                <ChevronDown className={`h-4 w-4 transition-transform ${isBrandMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isBrandMenuOpen && activeBrandCollection && (
+                <div className="absolute left-0 top-full mt-3 w-[760px] rounded-2xl border border-[#e5e5e5] bg-white shadow-xl">
+                  <div className="grid grid-cols-[220px,1fr]">
+                    <div className="border-r border-[#f0f0f0] py-3">
+                      {brandCollections.map((collection, index) => (
+                        <button
+                          type="button"
+                          key={collection.title}
+                          onMouseEnter={() => setActiveBrandCollectionIndex(index)}
+                          onFocus={() => setActiveBrandCollectionIndex(index)}
+                          className={`flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium transition ${
+                            index === activeBrandCollectionIndex
+                              ? 'bg-[#111111] text-white'
+                              : 'text-[#444444] hover:bg-[#f5f5f5]'
+                          }`}
+                        >
+                          <span className="text-left">{collection.title}</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="p-6 grid gap-6 lg:grid-cols-[1.4fr,220px]">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                          <h3 className="text-lg font-semibold text-[#111111]">
+                            {activeBrandCollection.title}
+                          </h3>
+                          {activeBrandCollection.description && (
+                            <p className="text-sm text-[#6b6b6b]">
+                              {activeBrandCollection.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="grid gap-6 sm:grid-cols-2">
+                          <div>
+                            <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#999999]">
+                              Popular brands
+                            </h4>
+                            <ul className="mt-2 space-y-2">
+                              {activeBrandCollection.popularBrands.map(brand => (
+                                <li key={brand.label}>
+                                  <Link
+                                    href={brand.href}
+                                    className="text-sm text-[#444444] transition hover:text-[#111111]"
+                                    onClick={() => setIsBrandMenuOpen(false)}
+                                  >
+                                    {brand.label}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#999999]">
+                              Featured brands
+                            </h4>
+                            <ul className="mt-2 space-y-2">
+                              {activeBrandCollection.featuredBrands.map(brand => (
+                                <li key={brand.label}>
+                                  <Link
+                                    href={brand.href}
+                                    className="text-sm text-[#444444] transition hover:text-[#111111]"
+                                    onClick={() => setIsBrandMenuOpen(false)}
+                                  >
+                                    {brand.label}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#999999]">
+                          Spotlights
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          {activeBrandCollection.spotlights.map(brand => (
+                            <Link
+                              key={brand.name}
+                              href={brand.href}
+                              className="flex flex-col items-center gap-2 rounded-xl border border-[#f0f0f0] bg-[#fafafa] p-3 text-center transition hover:-translate-y-1 hover:shadow-md"
+                              onClick={() => setIsBrandMenuOpen(false)}
+                            >
+                              <span
+                                className={`flex h-14 w-14 items-center justify-center rounded-full text-base font-semibold ${brand.accentColor} ${brand.textColor ?? 'text-[#111111]'}`}
+                              >
+                                {brand.initials}
+                              </span>
+                              <span className="text-xs font-medium text-[#444444] line-clamp-2">
+                                {brand.name}
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             <form
               onSubmit={handleSearch}
               className="relative hidden flex-1 items-center max-w-md mx-4 lg:flex"
@@ -384,13 +939,6 @@ export default function Home() {
                       </Link>
                     )}
                   </div>
-                  <Link
-                    href="/profile"
-                    className="inline-flex items-center gap-2 rounded-full border border-[#e5e5e5] px-3 py-2 text-sm font-medium text-[#444444] transition hover:bg-[#f2f2f2] hover:text-[#111111]"
-                  >
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">Profile</span>
-                  </Link>
                   <button
                     onClick={handleSignOut}
                     className="inline-flex items-center gap-2 rounded-full border border-[#e5e5e5] px-3 py-2 text-sm font-medium text-[#444444] transition hover:bg-[#f2f2f2] hover:text-[#111111]"

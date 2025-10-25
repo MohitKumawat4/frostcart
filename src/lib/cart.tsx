@@ -51,35 +51,45 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true)
 
-      // Load cart items with product details
+      // Get or create cart for user
+      let { data: cart, error: cartError } = await supabase
+        .from('cart')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (cartError && cartError.code === 'PGRST116') {
+        // Cart doesn't exist, create one
+        const { data: newCart, error: createError } = await supabase
+          .from('cart')
+          .insert({ user_id: user.id })
+          .select()
+          .single()
+
+        if (createError) throw createError
+        cart = newCart
+      } else if (cartError) {
+        throw cartError
+      }
+
+      // Load cart items
       const { data: cartItems, error: itemsError } = await supabase
         .from('cart')
         .select(`
-          id,
-          product_id,
-          quantity,
-          created_at,
-          products (
-            name,
-            image_url,
-            price
-          )
+          *,
+          products!inner(name, image_url, price)
         `)
         .eq('user_id', user.id)
 
-      if (itemsError) {
-        console.error('Error fetching cart items:', itemsError)
-        throw itemsError
-      }
+      if (itemsError) throw itemsError
 
-      // Format items for display
-      const formattedItems: CartItem[] = (cartItems || []).map((item: any) => ({
+      const formattedItems: CartItem[] = (cartItems || []).map(item => ({
         id: item.id,
         productId: item.product_id,
-        variantId: null,
-        name: item.products?.name || 'Unknown Product',
-        price: Number(item.products?.price || 0),
-        image: item.products?.image_url || '',
+        variantId: null, // No variants in this schema
+        name: item.products.name,
+        price: Number(item.products.price),
+        image: item.products.image_url || '',
         quantity: item.quantity
       }))
 
@@ -118,13 +128,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return
 
     try {
-      // Check if item already exists in cart
+      // Get user's cart
+      let { data: cart } = await supabase
+        .from('cart')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!cart) {
+        const { data: newCart } = await supabase
+          .from('cart')
+          .insert({ user_id: user.id })
+          .select()
+          .single()
+        cart = newCart
+      }
+
+      // Check if item already exists
       const { data: existingItem } = await supabase
         .from('cart')
         .select('*')
         .eq('user_id', user.id)
         .eq('product_id', product.id)
-        .maybeSingle()
+        .single()
 
       if (existingItem) {
         // Update quantity
@@ -133,7 +159,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           .update({ quantity: existingItem.quantity + quantity })
           .eq('id', existingItem.id)
       } else {
-        // Add new item
+        // Add new item (price will be fetched from products table when needed)
         await supabase
           .from('cart')
           .insert({
@@ -162,12 +188,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return
 
     try {
+      const { data: cart } = await supabase
+        .from('cart')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!cart) return
+
       const { data: item } = await supabase
         .from('cart')
         .select('*')
         .eq('user_id', user.id)
         .eq('product_id', productId)
-        .maybeSingle()
+        .single()
 
       if (item) {
         if (quantity <= 0) {
@@ -202,6 +236,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return
 
     try {
+      const { data: cart } = await supabase
+        .from('cart')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!cart) return
+
       await supabase
         .from('cart')
         .delete()
@@ -227,10 +269,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return
 
     try {
-      await supabase
+      const { data: cart } = await supabase
         .from('cart')
-        .delete()
+        .select('*')
         .eq('user_id', user.id)
+        .single()
+
+      if (cart) {
+        await supabase
+          .from('cart')
+          .delete()
+          .eq('user_id', user.id)
+      }
 
       setItems([])
     } catch (error) {
