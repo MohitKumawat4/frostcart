@@ -1,0 +1,4 @@
+functions-framework==3.*
+google-genai==1.*
+requests==2.*
+supabase==2.*

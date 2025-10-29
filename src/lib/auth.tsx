@@ -1,9 +1,10 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { User, Session, AuthError } from '@supabase/supabase-js'
+import { User, Session, AuthError, type PostgrestError } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { GuestCartManager } from './guest-cart'
+import type { Database } from './database.types'
 
 export type UserRole = 'customer' | 'merchant'
 
@@ -11,8 +12,16 @@ export interface UserProfile {
   id: string
   email: string
   role: UserRole
-  full_name?: string
+  full_name?: string | null
   avatar_url?: string
+  gender?: string | null
+  phone?: string | null
+  address_line1?: string | null
+  address_line2?: string | null
+  city?: string | null
+  state?: string | null
+  postal_code?: string | null
+  country?: string | null
 }
 
 interface AuthContextType {
@@ -23,7 +32,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, role: UserRole, fullName?: string) => Promise<{ error: AuthError | null }>
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<{ error: AuthError | null }>
-  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: AuthError | PostgrestError | null }>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -34,18 +44,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
+  type UsersRow = Database['public']['Tables']['users']['Row']
+  type UsersUpdate = Database['public']['Tables']['users']['Update']
+  type ProfilesRow = Database['public']['Tables']['profiles']['Row']
+  type ProfilesInsert = Database['public']['Tables']['profiles']['Insert']
+  type ProfilesUpdate = Database['public']['Tables']['profiles']['Update']
+
+  const usersTable = () => supabase.from('users') as any
+  const profilesTable = () => supabase.from('profiles') as any
+
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
 
-      if (session?.user) {
-        await loadUserProfile(session.user.id)
+        if (error) {
+          console.error('Error fetching initial session:', error)
+        }
+
+        setSession(session)
+        setUser(session?.user ?? null)
+
+        if (session?.user) {
+          await loadUserProfile(session.user.id)
+        }
+      } catch (error) {
+        console.error('getInitialSession failed:', error)
+      } finally {
+        setLoading(false)
       }
-
-      setLoading(false)
     }
 
     getInitialSession()
@@ -56,15 +84,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session)
         setUser(session?.user ?? null)
 
-        if (session?.user) {
-          await loadUserProfile(session.user.id)
-          // Merge guest cart with user cart
-          await mergeGuestCart(session.user.id)
-        } else {
-          setProfile(null)
+        try {
+          if (session?.user) {
+            await loadUserProfile(session.user.id)
+            // Merge guest cart with user cart
+            await mergeGuestCart(session.user.id)
+          } else {
+            setProfile(null)
+          }
+        } catch (error) {
+          console.error('Auth state change handler failed:', error)
+        } finally {
+          setLoading(false)
         }
-
-        setLoading(false)
       }
     )
 
@@ -129,32 +161,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadUserProfile = async (userId: string) => {
     try {
-      const { data, error }: { data: { id: string; email: string; full_name: string | null; avatar_url: string | null } | null, error: any } = await supabase
-        .from('profiles')
-        .select('*')
+      const { data: userData, error: userError } = await usersTable()
+        .select('id, email, role, full_name, avatar_url')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
 
-      if (error) {
-        console.error('Error loading user profile:', error)
+      if (userError) {
+        console.error('Error loading user row:', userError)
         return
       }
 
-      if (!data) {
-        console.error('Profile data is null')
+      const typedUserRow = userData as UsersRow | null
+      if (!typedUserRow) {
+        console.error('User row is null')
         return
+      }
+
+      const { data: profileData, error: profileError } = await profilesTable()
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error loading profile row:', profileError)
+        return
+      }
+
+      let ensuredProfile = profileData as ProfilesRow | null
+
+      if (!ensuredProfile) {
+        const emptyProfile: ProfilesInsert = { id: userId }
+        const { data: createdProfile, error: createProfileError } = await profilesTable()
+          .insert(emptyProfile as ProfilesInsert)
+          .select('*')
+          .single()
+
+        if (createProfileError) {
+          console.error('Error creating empty profile row:', createProfileError)
+        } else {
+          ensuredProfile = createdProfile as ProfilesRow | null
+        }
       }
 
       setProfile({
-        id: data.id,
-        email: data.email,
-        role: 'customer', // Default role since profiles table doesn't have role field
-        full_name: data.full_name || undefined,
-        avatar_url: data.avatar_url || undefined
+        id: typedUserRow.id,
+        email: typedUserRow.email,
+        role: (typedUserRow.role as UserRole) ?? 'customer',
+        full_name: typedUserRow.full_name ?? null,
+        avatar_url: typedUserRow.avatar_url || undefined,
+        gender: ensuredProfile?.gender ?? null,
+        phone: ensuredProfile?.phone ?? null,
+        address_line1: ensuredProfile?.address_line1 ?? null,
+        address_line2: ensuredProfile?.address_line2 ?? null,
+        city: ensuredProfile?.city ?? null,
+        state: ensuredProfile?.state ?? null,
+        postal_code: ensuredProfile?.postal_code ?? null,
+        country: ensuredProfile?.country ?? null
       })
     } catch (error) {
       console.error('Error loading user profile:', error)
     }
+  }
+
+  const refreshProfile = async () => {
+    if (!user) {
+      return
+    }
+
+    await loadUserProfile(user.id)
   }
 
   const signUp = async (email: string, password: string, role: UserRole, fullName?: string) => {
@@ -164,39 +238,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: {
         data: {
           full_name: fullName,
-          role: role
+          role
         }
       }
     })
 
-    if (!error) {
-      // Create user profile in database
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            email: user.email!,
-            full_name: fullName || undefined,
-          } as any)
-
-        if (profileError) {
-          console.error('Error creating user profile:', profileError)
-        }
-      }
+    if (error) {
+      return { error }
     }
 
-    return { error }
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+
+    if (authUser) {
+      const ensureProfile: ProfilesInsert = { id: authUser.id }
+      const { error: ensureProfileError } = await profilesTable()
+        .upsert(ensureProfile, { onConflict: 'id' })
+
+      if (ensureProfileError) {
+        console.error('Error ensuring profile row exists:', ensureProfileError)
+      }
+
+      await loadUserProfile(authUser.id)
+    }
+
+    return { error: null }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     })
 
-    return { error }
+    if (!error && data.session?.user) {
+      setUser(data.session.user)
+      await loadUserProfile(data.session.user.id)
+      await mergeGuestCart(data.session.user.id)
+    }
+
+    return { error, user: data.session?.user ?? null }
   }
 
   const signOut = async () => {
@@ -206,29 +286,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Error signing out:', error)
         return { error }
       }
-      // Note: Auth state will be cleared by the auth state change listener
-      // No need to manually clear local state here to avoid race conditions
+
+      // Immediately clear client state so the UI reacts without waiting for the listener callback.
+      setSession(null)
+      setUser(null)
+      setProfile(null)
+
       return { error: null }
     } catch (error) {
       console.error('Sign out failed:', error)
-      // If sign out fails, return the error
+      // If sign out fails, return the error to the caller for toast handling.
       return { error: error as AuthError }
     }
   }
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) return { error: 'No user logged in' }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: updates.full_name })
-      .eq('id', user.id)
-
-    if (!error) {
-      setProfile(prev => prev ? { ...prev, ...updates } : null)
+    if (!user) {
+      console.warn('updateProfile called without an authenticated user')
+      return { error: null }
     }
 
-    return { error }
+    const userPayload: UsersUpdate = {}
+    const profilePayload: ProfilesUpdate = {}
+
+    if ('full_name' in updates) {
+      userPayload.full_name = updates.full_name ?? null
+    }
+
+    if ('avatar_url' in updates) {
+      userPayload.avatar_url = updates.avatar_url ?? null
+    }
+
+    if ('role' in updates && updates.role) {
+      userPayload.role = updates.role
+    }
+
+    const profileFields: Array<keyof UserProfile> = ['gender', 'phone', 'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'country']
+    let hasProfileUpdates = false
+
+    for (const field of profileFields) {
+      if (field in updates) {
+        hasProfileUpdates = true
+        profilePayload[field as keyof ProfilesUpdate] = (updates as any)[field] ?? null
+      }
+    }
+
+    let combinedError: PostgrestError | null = null
+
+    if (Object.keys(userPayload).length > 0) {
+      const { error: usersError } = await usersTable()
+        .update(userPayload)
+        .eq('id', user.id)
+
+      if (usersError) {
+        combinedError = usersError
+      }
+    }
+
+    if (hasProfileUpdates) {
+      // Upsert the profile row so new users without an existing profile record are handled gracefully,
+      // and stamp the update with the current timestamp for auditing in Supabase.
+      const profileUpsertPayload: ProfilesInsert = {
+        id: user.id,
+        ...profilePayload,
+        updated_at: new Date().toISOString()
+      }
+
+      const { error: profileError } = await profilesTable()
+        .upsert(profileUpsertPayload, { onConflict: 'id' })
+
+      if (profileError) {
+        combinedError = profileError
+      }
+    }
+
+    if (!combinedError) {
+      // Optimistically update the profile state with the new values
+      setProfile(prev => {
+        if (!prev) return prev;
+        return { ...prev, ...updates };
+      });
+    }
+
+    return { error: combinedError }
   }
 
   const value = {
@@ -239,7 +379,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signIn,
     signOut,
-    updateProfile
+    updateProfile,
+    refreshProfile
   }
 
   return (

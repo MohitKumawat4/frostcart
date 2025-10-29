@@ -96,6 +96,93 @@ export interface Database {
           updated_at?: string
         }
       }
+      profiles: {
+        Row: {
+          id: string
+          gender: string | null
+          phone: string | null
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          state: string | null
+          postal_code: string | null
+          country: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: string
+          gender?: string | null
+          phone?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          state?: string | null
+          postal_code?: string | null
+          country?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          gender?: string | null
+          phone?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          state?: string | null
+          postal_code?: string | null
+          country?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+      }
+      users: {
+        Row: {
+          id: string
+          email: string
+          role: 'customer' | 'merchant'
+          full_name: string | null
+          avatar_url: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id: string
+          email: string
+          role?: 'customer' | 'merchant'
+          full_name?: string | null
+          avatar_url?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string
+          role?: 'customer' | 'merchant'
+          full_name?: string | null
+          avatar_url?: string | null
+          created_at?: string | null
+        }
+      }
+      customers: {
+        Row: {
+          id: string
+          user_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
       merchants: {
         Row: {
           id: string
@@ -105,6 +192,9 @@ export interface Database {
           logo_url: string | null
           is_verified: boolean
           created_at: string
+          storefront_url: string | null
+          support_email: string | null
+          support_phone: string | null
         }
         Insert: {
           id?: string
@@ -114,6 +204,9 @@ export interface Database {
           logo_url?: string | null
           is_verified?: boolean
           created_at?: string
+          storefront_url?: string | null
+          support_email?: string | null
+          support_phone?: string | null
         }
         Update: {
           id?: string
@@ -122,6 +215,67 @@ export interface Database {
           business_description?: string | null
           logo_url?: string | null
           is_verified?: boolean
+          created_at?: string
+          storefront_url?: string | null
+          support_email?: string | null
+          support_phone?: string | null
+        }
+      }
+      merchant_metrics: {
+        Row: {
+          id: string
+          merchant_id: string
+          total_sales: number
+          total_orders: number
+          total_customers: number
+          inventory_value: number
+          last_updated: string
+        }
+        Insert: {
+          id?: string
+          merchant_id: string
+          total_sales?: number
+          total_orders?: number
+          total_customers?: number
+          inventory_value?: number
+          last_updated?: string
+        }
+        Update: {
+          id?: string
+          merchant_id?: string
+          total_sales?: number
+          total_orders?: number
+          total_customers?: number
+          inventory_value?: number
+          last_updated?: string
+        }
+      }
+      merchant_notifications: {
+        Row: {
+          id: string
+          merchant_id: string
+          title: string
+          message: string
+          category: 'order' | 'inventory' | 'payout' | 'system'
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          merchant_id: string
+          title: string
+          message: string
+          category?: 'order' | 'inventory' | 'payout' | 'system'
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          merchant_id?: string
+          title?: string
+          message?: string
+          category?: 'order' | 'inventory' | 'payout' | 'system'
+          is_read?: boolean
           created_at?: string
         }
       }
@@ -223,66 +377,74 @@ export interface Database {
       products: {
         Row: {
           id: string
-          merchant_id: string
           name: string
           description: string | null
-          category: 'chocolate' | 'ice_cream' | 'combo'
+          merchant_id: string | null
           price: number
           stock_quantity: number
+          category_id: string | null
           image_url: string | null
-          is_featured: boolean
-          status: 'active' | 'inactive'
-          created_at: string
-          updated_at: string
+          weight_grams: number | null
+          ingredients: string[] | null
+          allergens: string[] | null
+          is_available: boolean | null
+          is_featured: boolean | null
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
           id?: string
-          merchant_id: string
           name: string
           description?: string | null
-          category: 'chocolate' | 'ice_cream' | 'combo'
+          merchant_id?: string | null
           price: number
           stock_quantity?: number
+          category_id?: string | null
           image_url?: string | null
-          is_featured?: boolean
-          status?: 'active' | 'inactive'
-          created_at?: string
-          updated_at?: string
+          weight_grams?: number | null
+          ingredients?: string[] | null
+          allergens?: string[] | null
+          is_available?: boolean | null
+          is_featured?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
           id?: string
-          merchant_id?: string
           name?: string
           description?: string | null
-          category?: 'chocolate' | 'ice_cream' | 'combo'
+          merchant_id?: string | null
           price?: number
           stock_quantity?: number
+          category_id?: string | null
           image_url?: string | null
-          is_featured?: boolean
-          product_id?: string
-          variant_id?: string | null
-          quantity?: number
-          created_at?: string
-          updated_at?: string
+          weight_grams?: number | null
+          ingredients?: string[] | null
+          allergens?: string[] | null
+          is_available?: boolean | null
+          is_featured?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
         }
       }
       wishlists: {
         Row: {
           id: string
+          user_id: string
           product_id: string
-          created_at: string
+          created_at: string | null
         }
         Insert: {
           id?: string
           user_id: string
           product_id: string
-          created_at?: string
+          created_at?: string | null
         }
         Update: {
           id?: string
           user_id?: string
           product_id?: string
-          created_at?: string
+          created_at?: string | null
         }
       }
     }

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useRef, type FormEvent } from "react";
 import {
   ChevronRight,
   ChevronDown,
@@ -558,6 +558,7 @@ export default function Home() {
   const [activeMegaCategoryIndex, setActiveMegaCategoryIndex] = useState<number>(0);
   const [isBrandMenuOpen, setIsBrandMenuOpen] = useState<boolean>(false);
   const [activeBrandCollectionIndex, setActiveBrandCollectionIndex] = useState<number>(0);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, profile, signOut, loading: authLoading } = useAuth();
   const { itemCount, addItem, loading: cartLoading } = useCart();
@@ -643,7 +644,11 @@ export default function Home() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
 
-      if (isProfileDropdownOpen && !target.closest('#profile-dropdown-container')) {
+      if (
+        isProfileDropdownOpen &&
+        profileDropdownRef.current &&
+        !profileDropdownRef.current.contains(target)
+      ) {
         setIsProfileDropdownOpen(false);
       }
 
@@ -664,7 +669,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f6f5f4] text-[#111111]">
-      <header className="sticky top-0 z-40 shadow-sm">
+      <header className="sticky top-0 z-40 shadow-sm bg-white">
         {/* Customer navigation; merchant-specific controls will slot in later. */}
         <div className="border-b border-[#e5e5e5] bg-white">
           <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-3 sm:gap-4 sm:px-4 lg:gap-6">
@@ -672,7 +677,7 @@ export default function Home() {
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e5e5] text-[#444444] transition hover:bg-[#f2f2f2] lg:hidden"
-              aria-label="Open navigation menu"
+              aria-label="Toggle navigation menu"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -927,25 +932,76 @@ export default function Home() {
                 )}
               </Link>
               {user ? (
-                <div className="flex items-center gap-2">
-                  <div className="hidden lg:flex items-center gap-2 text-sm">
-                    <span className="text-[#444444]">Hi, {profile?.full_name || user.email}</span>
-                    {profile?.role === 'merchant' && (
-                      <Link
-                        href="/merchant"
-                        className="text-[#111111] font-medium hover:underline"
-                      >
-                        Dashboard
-                      </Link>
-                    )}
-                  </div>
+                <div className="relative" ref={profileDropdownRef}>
                   <button
-                    onClick={handleSignOut}
-                    className="inline-flex items-center gap-2 rounded-full border border-[#e5e5e5] px-3 py-2 text-sm font-medium text-[#444444] transition hover:bg-[#f2f2f2] hover:text-[#111111]"
+                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                    className="inline-flex items-center gap-2 rounded-full border border-[#e5e5e5] px-3 py-2 text-sm font-medium text-[#444444] transition hover:bg-[#f2f2f2] hover:text-[#111111] sm:px-4"
                   >
-                    <LogOut className="h-4 w-4" />
-                    <span className="hidden sm:inline">Sign out</span>
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">{profile?.full_name || 'My Account'}</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
+                  {isProfileDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-56 rounded-lg border border-[#e5e5e5] bg-white shadow-lg z-50">
+                      <div className="p-3 border-b border-[#e5e5e5]">
+                        <p className="text-sm font-medium text-[#111111]">{profile?.full_name || user.email}</p>
+                        <p className="text-xs text-[#888888] truncate">{user.email}</p>
+                      </div>
+                      <div className="py-2">
+                        <Link
+                          href="/profile"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#444444] transition hover:bg-[#f8f8f8]"
+                        >
+                          <User className="h-4 w-4" />
+                          <span>My Account</span>
+                        </Link>
+                        <Link
+                          href="/orders"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#444444] transition hover:bg-[#f8f8f8]"
+                        >
+                          <Package className="h-4 w-4" />
+                          <span>Order History</span>
+                        </Link>
+                        <Link
+                          href="/wishlist"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#444444] transition hover:bg-[#f8f8f8]"
+                        >
+                          <Heart className="h-4 w-4" />
+                          <span>My Wishlist</span>
+                        </Link>
+                        {profile?.role === 'merchant' && (
+                          <Link
+                            href="/merchant"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#444444] transition hover:bg-[#f8f8f8]"
+                          >
+                            <Wallet className="h-4 w-4" />
+                            <span>Merchant Dashboard</span>
+                          </Link>
+                        )}
+                        <Link
+                          href="/gift-cards"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#444444] transition hover:bg-[#f8f8f8]"
+                        >
+                          <Gift className="h-4 w-4" />
+                          <span>Gift Card</span>
+                        </Link>
+                      </div>
+                      <div className="border-t border-[#e5e5e5] py-2">
+                        <button
+                          onClick={handleSignOut}
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#444444] transition hover:bg-[#f8f8f8]"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -967,6 +1023,46 @@ export default function Home() {
             </div>
           </div>
         </div>
+        {/* Mobile menu extends account access on small screens. */}
+        {isMobileMenuOpen && (
+          <div className="border-b border-[#eaeaea] bg-white px-3 py-3 sm:px-4 lg:hidden">
+            <div className="space-y-3 text-sm">
+              <Link
+                href="/profile"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between rounded-full border border-[#e5e5e5] px-4 py-2 text-[#111111] transition hover:bg-[#111111] hover:text-white"
+              >
+                <span className="flex items-center gap-2"><User className="h-4 w-4" /> My Account</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/orders"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between rounded-full border border-[#e5e5e5] px-4 py-2 text-[#111111] transition hover:bg-[#111111] hover:text-white"
+              >
+                <span className="flex items-center gap-2"><Package className="h-4 w-4" /> Order History</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/wishlist"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between rounded-full border border-[#e5e5e5] px-4 py-2 text-[#111111] transition hover:bg-[#111111] hover:text-white"
+              >
+                <span className="flex items-center gap-2"><Heart className="h-4 w-4" /> Wishlist</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/profile#merchant"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between rounded-full border border-[#e5e5e5] px-4 py-2 text-[#111111] transition hover:bg-[#111111] hover:text-white"
+              >
+                <span className="flex items-center gap-2"><Wallet className="h-4 w-4" /> Become a Merchant</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Mobile search mirrors the main nav without altering desktop layout. */}
         <div className="border-b border-[#eaeaea] bg-white px-3 py-3 sm:px-4 lg:hidden">
           <form onSubmit={handleSearch} className="relative">
